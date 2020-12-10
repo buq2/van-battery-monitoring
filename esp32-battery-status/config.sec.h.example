@@ -1,0 +1,6 @@
+#pragma once
+#define WLAN_SSID "2ghzssid"
+#define WLAN_PASSWORD "password"
+#define HTTP_USER "battery_status"
+#define HTTP_PASSWORD "basicauth_password"
+#define HTTP_ADDRESS "192.168.1.5:8000/api/update_battery_status"
