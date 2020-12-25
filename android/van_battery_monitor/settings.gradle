@@ -1,0 +1,2 @@
+include ':app'
+rootProject.name = "van_battery_monitor"
