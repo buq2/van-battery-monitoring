@@ -85,11 +85,13 @@ bool oldDeviceConnected = false;
 
 class ServerCallbacks: public BLEServerCallbacks {
   void onConnect(BLEServer* pServer) {
+    USE_SERIAL.println("[BLE] Device connected");
     deviceConnected = true;
     BLEDevice::startAdvertising();
   };
 
   void onDisconnect(BLEServer* pServer) {
+    USE_SERIAL.println("[BLE] Device disconnected");
     deviceConnected = false;
   }
 };
@@ -113,15 +115,16 @@ void setup_ble() {
   // Create a BLE Characteristic
   pCharacteristic = pService->createCharacteristic(
                       CHARACTERISTIC_UUID,
-                      BLECharacteristic::PROPERTY_READ   
+                      // BLECharacteristic::PROPERTY_READ   
                       // | BLECharacteristic::PROPERTY_WRITE 
-                      | BLECharacteristic::PROPERTY_NOTIFY 
-                      | BLECharacteristic::PROPERTY_INDICATE
+                      BLECharacteristic::PROPERTY_NOTIFY 
+                      // | BLECharacteristic::PROPERTY_INDICATE
                     );
 
   // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
   // Create a BLE Descriptor
-  pCharacteristic->addDescriptor(new BLE2902());
+  auto ble2902 = new BLE2902();
+  pCharacteristic->addDescriptor(ble2902);
 
   // Start the service
   pService->start();
@@ -132,6 +135,15 @@ void setup_ble() {
   pAdvertising->setScanResponse(false);
   pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
   BLEDevice::startAdvertising();
+
+  // Enable notifications
+  // This can also be done from android, but there seems to be a possible race condition in this code
+  // which is easier to fix by setting the notifications to always on
+  ble2902->setNotifications(true);
+
+  // See:
+  // https://github.com/nkolban/ESP32_BLE_Arduino/blob/master/src/BLECharacteristic.h
+  // https://github.com/espressif/arduino-esp32/blob/master/libraries/BLE/examples/BLE_server_multiconnect/BLE_server_multiconnect.ino
 }
 
 void setup_serial() {
@@ -140,12 +152,6 @@ void setup_serial() {
   USE_SERIAL.println();
   USE_SERIAL.println();
   USE_SERIAL.println();
-
-  /*for(uint8_t t = 4; t > 0; t--) {
-    USE_SERIAL.printf("[SETUP] WAIT %d\n", t);
-    USE_SERIAL.flush();
-    delay(1000);
-  }*/
 }
 
 void setup_wlan() {
@@ -235,6 +241,8 @@ void UpdateHTTP(const ChargerStatus &status, const String &json_payload) {
   // Check WLAN connection
   if((wifiMulti.run() == WL_CONNECTED)) {
     HTTPClient http;
+    http.setConnectTimeout(512); //ms
+    http.setTimeout(512); //ms
 
     USE_SERIAL.print("[HTTP] begin\n");
 
@@ -272,8 +280,11 @@ void UpdateHTTP(const ChargerStatus &status, const String &json_payload) {
 void UpdateBLE(const ChargerStatus &status, const String &json_payload) {
   // Notify changed value
   if (deviceConnected) {
+    USE_SERIAL.println("[BLE] Sending data");
+    
     pCharacteristic->setValue((uint8_t*)json_payload.c_str(), json_payload.length());
     pCharacteristic->notify();
+    delay(50); // Maybe not needed
   }
   
   // Disconnecting
@@ -287,6 +298,7 @@ void UpdateBLE(const ChargerStatus &status, const String &json_payload) {
   // Connecting
   if (deviceConnected && !oldDeviceConnected) {
     // Do stuff here on connecting
+    Serial.println("[BLE] Connecting?");
     oldDeviceConnected = deviceConnected;
   }
 }
