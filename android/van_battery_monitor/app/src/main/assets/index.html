@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
     <script src='file:///android_asset/plotly-latest.min.js'></script>
+    <link href='file:///android_asset/bootstrap.min.css' rel="stylesheet">
+
     <style>
         .message {
            animation: fadeOut 2s forwards;
@@ -14,12 +16,30 @@
             to {opacity: 0;}
         }
 
+        #title {
+            margin-top:10px;
+        }
     </style>
 </head>
 <body>
-<div>
-    <div id='divGauges'>Waiting data from Bluetooth</div>
-    <div class="message" id='message'></div>
+<div class="container">
+    <h1 class="text-center" id="title"></h1>
+    <div id="divGauges">
+        <div class="alert alert-info">Waiting data from Bluetooth</div>
+    </div>
+    <div class="row text-center fixed-bottom">
+        <div class="col-4">
+            <button type="button" class="btn btn-primary" id="btn-solar">Solar</button>
+        </div>
+        <div class="col-4">
+            <button type="button" class="btn btn-primary" id="btn-alternator">Alternator</button>
+        </div>
+        <div class="col-4">
+            <button type="button" class="btn btn-primary" id="btn-total">Total</button>
+        </div>
+        <div class="message" id="message">...</div>
+    </div>
+
 </div>
 <script type="text/javascript">
     function reset_animation() {
@@ -29,31 +49,38 @@
         el.style.animation = null;
     }
 
-    function displayData(data) {
-        console.log(data);
-        data = JSON.parse(data);
+    var component_to_display = "battery";
+    var previous_data;
 
-        var data1 = [
-        {
-            domain: { row:0, column:0},
-            value: data["battery"]["power_w"],
-            title: { text: "Power" },
-            type: "indicator",
-            mode: "gauge+number",
-            gauge: {
-              axis: { range: [null, 100] },
-            }
-        },{
-            domain: { row:1, column:0},
-            value: data["battery"]["current_a"],
-            title: { text: "Current" },
-            type: "indicator",
-            mode: "gauge+number",
-            gauge: {
-              axis: { range: [null, 10] },
-            }
+    function updateDisplay() {
+        const component_to_title = {
+            "battery":"Total",
+            "solar":"Solar",
+            "alternator":"Alternator"
         }
-    ];
+        document.getElementById("title").innerHTML = component_to_title[component_to_display];
+
+        var data_to_display = [
+            {
+                domain: { row:0, column:0},
+                value: previous_data[component_to_display]["power_w"],
+                title: { text: "Power" },
+                type: "indicator",
+                mode: "gauge+number",
+                gauge: {
+                  axis: { range: [null, 100] },
+                }
+            },{
+                domain: { row:1, column:0},
+                value: previous_data[component_to_display]["current_a"],
+                title: { text: "Current" },
+                type: "indicator",
+                mode: "gauge+number",
+                gauge: {
+                  axis: { range: [null, 10] },
+                }
+            }
+        ];
 
         var layout = {
             margin: { t: 0, b: 0 },
@@ -61,16 +88,22 @@
            };
         var config = {responsive: true}
         document.getElementById("divGauges").innerHTML = "";
-        Plotly.newPlot('divGauges', data1, layout, config);
+        Plotly.newPlot('divGauges', data_to_display, layout, config);
+    }
+
+    function displayData(data) {
+        data = JSON.parse(data);
+        previous_data = data;
+        updateDisplay();
 
         // "Flash" updated
         document.getElementById("message").innerHTML = "Updated";
         reset_animation();
     }
 
-
-
-
+    document.getElementById("btn-solar").onclick = ()=>{component_to_display = "solar"; updateDisplay();};
+    document.getElementById("btn-alternator").onclick = ()=>{component_to_display = "alternator"; updateDisplay();};
+    document.getElementById("btn-total").onclick = ()=>{component_to_display = "battery"; updateDisplay();};
 </script>
 </body>
 </html>
