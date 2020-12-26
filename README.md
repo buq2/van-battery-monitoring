@@ -5,4 +5,5 @@ battery monitoring system.
 
 ESP32 reads solar charging status from DCC50S and measures voltages
 across a shunt which is then calculated to total battery current. This 
-data is send to HTTP server running on Autopi.
+data is send to HTTP server running on Autopi and Android application
+through Bluetooth.
