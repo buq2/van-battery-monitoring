@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
     <script src='file:///android_asset/plotly-latest.min.js'></script>
+    <script src='file:///android_asset/d3-interpolate.v2.min.js'></script>
+    <script src='file:///android_asset/d3-color.v2.min.js'></script>
     <link href='file:///android_asset/bootstrap.min.css' rel="stylesheet">
 
     <style>
@@ -19,29 +21,34 @@
         #title {
             margin-top:10px;
         }
+
     </style>
 </head>
 <body>
 <div class="container">
     <h1 class="text-center" id="title"></h1>
-    <div id="divGauges">
-        <div class="alert alert-info">Waiting data from Bluetooth</div>
+    <div class="container" id="divGauges">
+        <div class="alert alert-info">Waiting for data from Bluetooth</div>
     </div>
-    <div class="row text-center fixed-bottom">
-        <div class="col-4">
-            <button type="button" class="btn btn-primary" id="btn-solar">Solar</button>
+    <div class="fixed-bottom">
+        <div class="row text-center">
+            <div class="col-4">
+                <button class="btn btn-primary" id="btn-solar" type="button">Solar</button>
+            </div>
+            <div class="col-4">
+                <button class="btn btn-primary" id="btn-alternator" type="button">Alternator
+                </button>
+            </div>
+            <div class="col-4">
+                <button class="btn btn-primary" id="btn-total" type="button">Total</button>
+            </div>
         </div>
-        <div class="col-4">
-            <button type="button" class="btn btn-primary" id="btn-alternator">Alternator</button>
-        </div>
-        <div class="col-4">
-            <button type="button" class="btn btn-primary" id="btn-total">Total</button>
-        </div>
-        <div class="message" id="message">...</div>
+        <p class="message text-center" id="message">...</p>
     </div>
 
 </div>
 <script type="text/javascript">
+
     function reset_animation() {
         var el = document.getElementById('message');
         el.style.animation = 'none';
@@ -52,6 +59,78 @@
     var component_to_display = "battery";
     var previous_data;
 
+    function colorizeGauge(gauge, clrs) {
+        let range = gauge.gauge.axis.range;
+        let min = 0;
+        if (range[0] != null) {
+            min = range[0];
+        }
+        let max = range[1];
+        let val = gauge.value;
+        let lrp = (val-min)/(max-min);
+        gauge.gauge.bar.color = d3.interpolateLab(clrs[0], clrs[1])(lrp);
+        return gauge;
+    }
+
+    function getGaugeColors() {
+        if (component_to_display == "solar") {
+            return ["red", "green"];
+        } else {
+            return ["green", "red"];
+        }
+    }
+
+    function getGauge() {
+        return {
+            domain: { row:0, column:0},
+            value: 0,
+            title: {
+                text: "<replace>",
+                font: {
+                    color: "white",
+                },
+            },
+            type: "indicator",
+            mode: "gauge+number",
+            number: {
+                suffix: "<replace>",
+                font: {
+                    color: "white",
+                },
+            },
+            gauge: {
+              borderwidth:0,
+              bar: {color:"red"},
+              axis: {
+                range: [null, 100],
+                visible: false,
+              },
+            }
+        }
+    }
+
+    function getPowerGauge() {
+        var out = getGauge();
+        out.domain.row = 0;
+        out.title.text = "Power";
+        out.number.suffix = "W";
+        out.gauge.axis.range = [null, 100];
+        out.value = previous_data[component_to_display]["power_w"];
+
+        return colorizeGauge(out, getGaugeColors());
+    }
+
+    function getCurrentGauge() {
+        var out = getGauge();
+        out.domain.row = 1;
+        out.title.text = "Current";
+        out.number.suffix = "A";
+        out.gauge.axis.range = [null, 10];
+        out.value = previous_data[component_to_display]["current_a"];
+
+        return colorizeGauge(out, getGaugeColors());
+    }
+
     function updateDisplay() {
         const component_to_title = {
             "battery":"Total",
@@ -61,30 +140,14 @@
         document.getElementById("title").innerHTML = component_to_title[component_to_display];
 
         var data_to_display = [
-            {
-                domain: { row:0, column:0},
-                value: previous_data[component_to_display]["power_w"],
-                title: { text: "Power" },
-                type: "indicator",
-                mode: "gauge+number",
-                gauge: {
-                  axis: { range: [null, 100] },
-                }
-            },{
-                domain: { row:1, column:0},
-                value: previous_data[component_to_display]["current_a"],
-                title: { text: "Current" },
-                type: "indicator",
-                mode: "gauge+number",
-                gauge: {
-                  axis: { range: [null, 10] },
-                }
-            }
+            getPowerGauge(), getCurrentGauge()
         ];
 
         var layout = {
             margin: { t: 0, b: 0 },
             grid: { rows: 2, columns: 1},
+            plot_bgcolor:"#00000000",
+            paper_bgcolor:"#00000000"
            };
         var config = {responsive: true}
         document.getElementById("divGauges").innerHTML = "";
@@ -104,6 +167,7 @@
     document.getElementById("btn-solar").onclick = ()=>{component_to_display = "solar"; updateDisplay();};
     document.getElementById("btn-alternator").onclick = ()=>{component_to_display = "alternator"; updateDisplay();};
     document.getElementById("btn-total").onclick = ()=>{component_to_display = "battery"; updateDisplay();};
+
 </script>
 </body>
 </html>
