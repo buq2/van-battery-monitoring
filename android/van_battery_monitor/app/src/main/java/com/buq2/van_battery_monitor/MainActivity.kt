@@ -7,17 +7,23 @@ import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
-import android.view.MotionEvent
 import android.webkit.WebView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.location.LocationManagerCompat
+
 
 class MainActivity : AppCompatActivity() {
     private val TAG: String = com.buq2.van_battery_monitor.MainActivity::class.java.getSimpleName()
@@ -28,15 +34,74 @@ class MainActivity : AppCompatActivity() {
     private val BLE_DEVICE_CHAR: String = "e5d3a406-a784-4bb1-947b-630a9732098a"
     var mBluetoothDevice: BluetoothDevice? = null
     private var myWebView: WebView? = null
+    private val REQUEST_ENABLE_BT = 1
+    private val REQUEST_ENABLE_LOCATION = 1
+
+    private val mReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent) {
+            val action = intent.action
+
+            // It means the user has changed his bluetooth state.
+            if (action == BluetoothAdapter.ACTION_STATE_CHANGED) {
+                if (mBluetoothAdapter!!.getState() === BluetoothAdapter.STATE_TURNING_OFF) {
+                    return
+                } else if (mBluetoothAdapter!!.getState() === BluetoothAdapter.STATE_OFF) {
+                    runOnUiThread {
+                        Toast.makeText(applicationContext, "Bluetooth off", Toast.LENGTH_SHORT).show()
+                    }
+                    return
+                } else if (mBluetoothAdapter!!.getState() === BluetoothAdapter.STATE_TURNING_ON) {
+                    return
+                } else if (mBluetoothAdapter!!.getState() === BluetoothAdapter.STATE_ON) {
+                    runOnUiThread {
+                        Toast.makeText(applicationContext, "Bluetooth on", Toast.LENGTH_SHORT).show()
+                    }
+                    StartScan()
+                    return
+                }
+            } else if (action == LocationManager.PROVIDERS_CHANGED_ACTION) {
+                if (isLocationOn()) {
+                    runOnUiThread {
+                        Toast.makeText(applicationContext, "Location on", Toast.LENGTH_SHORT).show()
+                    }
+                    StartScan()
+                } else {
+                    runOnUiThread {
+                        Toast.makeText(applicationContext, "Location off", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        initBle()
+        initBleAndLocation()
         initWebview()
     }
 
-    fun initBle() {
+    fun isLocationOn(): Boolean {
+        val locationManager = applicationContext.getSystemService(LOCATION_SERVICE) as LocationManager
+        return LocationManagerCompat.isLocationEnabled(locationManager)
+    }
+
+    fun checkLocation() {
+        if (!isLocationOn()) {
+            Toast.makeText(this, "Location not enabled", Toast.LENGTH_SHORT).show()
+            val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+            startActivityForResult(intent, REQUEST_ENABLE_LOCATION)
+        }
+    }
+
+    fun checkBluetooth() {
+        if (!mBluetoothAdapter!!.isEnabled()) {
+            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
+        }
+    }
+
+    fun initBleAndLocation() {
         // Use this check to determine whether BLE is supported on the device.  Then you can
         // selectively disable BLE-related features.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -53,7 +118,7 @@ class MainActivity : AppCompatActivity() {
         // Initializes a Bluetooth adapter.  For API level 18 and above, get a reference to
         // BluetoothAdapter through BluetoothManager.
         val bluetoothManager =
-                getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+                getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
         mBluetoothAdapter = bluetoothManager.adapter
 
         // Checks if Bluetooth is supported on the device.
@@ -63,8 +128,13 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        mBluetoothLeScanner = mBluetoothAdapter!!.getBluetoothLeScanner()
+        val filter = IntentFilter()
+        filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+        filter.addAction(LocationManager.PROVIDERS_CHANGED_ACTION)
+        this.registerReceiver(mReceiver, filter)
 
+        checkBluetooth()
+        checkLocation()
         StartScan()
     }
 
@@ -82,6 +152,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun StartScan() {
+        mBluetoothLeScanner = mBluetoothAdapter!!.getBluetoothLeScanner()
+        if (mBluetoothLeScanner == null) {
+            Toast.makeText(this, "Bluetooth is off", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val builder = ScanSettings.Builder()
         builder.setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
         builder.setReportDelay(0)
@@ -109,13 +185,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        Log.i(TAG, "Resume")
-        // Ensures Bluetooth is enabled on the device.  If Bluetooth is not currently enabled,
-        // fire an intent to display a dialog asking the user to grant permission to enable it.
-        if (mBluetoothAdapter == null || !mBluetoothAdapter!!.isEnabled) {
-            Toast.makeText(this, "Bluetooth not enabled", Toast.LENGTH_SHORT).show()
-        }
-
+        checkBluetooth()
+        checkLocation()
     }
 
     fun StopScanning() {
