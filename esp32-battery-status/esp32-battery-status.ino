@@ -41,19 +41,18 @@ WiFiMulti wifiMulti;
 
 BLEServer* pServer = NULL;
 BLECharacteristic* pCharacteristic = NULL;
-bool deviceConnected = false;
-bool oldDeviceConnected = false;
 
 class ServerCallbacks: public BLEServerCallbacks {
   void onConnect(BLEServer* pServer) {
     USE_SERIAL.println("[BLE] Device connected");
-    deviceConnected = true;
+    delay(500); 
     BLEDevice::startAdvertising();
   };
 
   void onDisconnect(BLEServer* pServer) {
     USE_SERIAL.println("[BLE] Device disconnected");
-    deviceConnected = false;
+    delay(500); 
+    BLEDevice::startAdvertising();
   }
 };
 
@@ -196,29 +195,11 @@ void UpdateHTTP(const ChargerStatus &status, const String &json_payload) {
  */
 
 void UpdateBLE(const ChargerStatus &status, const String &json_payload) {
-  // Notify changed value
-  if (deviceConnected) {
-    USE_SERIAL.println("[BLE] Sending data");
-    
-    pCharacteristic->setValue((uint8_t*)json_payload.c_str(), json_payload.length());
-    pCharacteristic->notify();
-    delay(50); // Maybe not needed
-  }
+  USE_SERIAL.println("[BLE] Sending data");
   
-  // Disconnecting
-  if (!deviceConnected && oldDeviceConnected) {
-    delay(500); // Give the bluetooth stack the chance to get things ready
-    pServer->startAdvertising(); // Restart advertising
-    Serial.println("[BLE] Start advertising");
-    oldDeviceConnected = deviceConnected;
-  }
-  
-  // Connecting
-  if (deviceConnected && !oldDeviceConnected) {
-    // Do stuff here on connecting
-    Serial.println("[BLE] Connecting?");
-    oldDeviceConnected = deviceConnected;
-  }
+  pCharacteristic->setValue((uint8_t*)json_payload.c_str(), json_payload.length());
+  pCharacteristic->notify();
+  delay(50); // Maybe not needed
 }
 
 /*=============================
