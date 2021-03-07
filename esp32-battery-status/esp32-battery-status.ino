@@ -1,4 +1,8 @@
-// Requires ArduinoJson - arduinojson.org
+// Requires:
+// ArduinoJson - arduinojson.org
+// ModbusMaster - https://github.com/craftmetrics/esp32-modbusmaster
+
+
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
@@ -9,62 +13,19 @@
 #include <HTTPClient.h>
 #include "config.sec.h"
 
-#include <TFT_eSPI.h> // Graphics and font library for ST7735 driver chip
-#include <SPI.h>
+#include "common.h"
+#include "modbus.h"
+#include "display.h"
 
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
 
-
-TFT_eSPI tft = TFT_eSPI();
-
 #define USE_SERIAL Serial
-#define FONT_SIZE 8
 
 WiFiMulti wifiMulti;
 
-/*=============================
- * Data
- *============================= 
- */
-
-
-struct ComponentStatus {
-  float power_w{0.0f};
-  float current_a{0.0f};
-  float voltage_v{0.0f};
-};
-
-struct ChargerStatus {
-  ComponentStatus solar;
-  ComponentStatus alternator;
-  ComponentStatus battery;
-};
-
-/*=============================
- * Getting new data
- *============================= 
- */
-
-ChargerStatus GetChargerStatus() {
-  ChargerStatus out;
-  
-  out.solar.power_w = random(1000)/10.0f;
-  out.solar.current_a = random(1000)/100.0f;
-  out.solar.voltage_v = 12.0f + random(100)/100.0f;
-
-  out.alternator.power_w = random(1000)/10.0f;
-  out.alternator.current_a = random(1000)/100.0f;
-  out.alternator.voltage_v = 12.0f + random(100)/100.0f;
-
-  out.battery.power_w = random(1000)/10.0f;
-  out.battery.current_a = random(1000)/100.0f;
-  out.battery.voltage_v = 12.0f + random(100)/100.0f;
-   
-  return out;
-}
 
 /*=============================
  * BLE
@@ -158,18 +119,12 @@ void setup_wlan() {
   wifiMulti.addAP(WLAN_SSID, WLAN_PASSWORD);
 }
 
-void setup_display() {
-  tft.init();
-  tft.setRotation(0);
-  tft.fillScreen(TFT_BLACK);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);  // Adding a black background colour erases previous text automatically
-}
-
 void setup() {
   setup_serial();
   setup_wlan();
   setup_display();
   setup_ble();
+  setup_modbus();
 }
 
 /*=============================
@@ -193,43 +148,6 @@ String GetHttpPayload(const ChargerStatus &status) {
   String output;
   serializeJson(doc, output);
   return output;
-}
-
-/*=============================
- * Display
- *============================= 
- */
-
-void DrawText(const char *str, const int x, int &y) {
-  tft.drawString(str, x, y);
-  y += FONT_SIZE;
-}
-
-void DrawSubComponent2(const char *txt, const float &val, int &y) {
-  const int decimals = 2;
-  const int x = 10;
-  tft.drawString(txt, x, y);
-  tft.drawFloat(val, decimals, x+tft.textWidth(txt), y);
-  y += FONT_SIZE;
-}
-
-void DrawComponent(const ComponentStatus &status, int &y) {
-  DrawSubComponent2("Power:", status.power_w, y);
-  DrawSubComponent2("Current:", status.current_a, y);
-  DrawSubComponent2("Voltage:", status.voltage_v, y);
-}
-
-void DrawStatus(const ChargerStatus &status) {
-  int pos_y = 0;
-
-  DrawText("Battery:", 0, pos_y);
-  DrawComponent(status.battery, pos_y);
-  
-  DrawText("Solar:", 0, pos_y);
-  DrawComponent(status.solar, pos_y);
-
-  DrawText("Alternator:", 0, pos_y);
-  DrawComponent(status.alternator, pos_y);
 }
 
 /*=============================
@@ -314,6 +232,6 @@ void loop() {
     DrawStatus(status);
     UpdateHTTP(status, json_payload);
     UpdateBLE(status, json_payload);
-
+    print_battery_status_to_serial();
     delay(5000);
 }
