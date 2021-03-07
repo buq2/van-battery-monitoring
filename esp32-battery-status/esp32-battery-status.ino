@@ -143,6 +143,12 @@ String GetHttpPayload(const ChargerStatus &status) {
   ConvertComponentStatus(status.battery, doc["battery"]);
   ConvertComponentStatus(status.solar, doc["solar"]);
   ConvertComponentStatus(status.alternator, doc["alternator"]);
+
+  doc["total_daily_charge_ah"] = status.total_daily_charge_ah;
+  doc["status_bits1"] = status.status_bits1;
+  doc["status_bits2"] = status.status_bits2;
+  doc["status_bits3"] = status.status_bits3;
+  doc["battery_percentage"] = status.battery_percentage;
   
   String output;
   serializeJson(doc, output);

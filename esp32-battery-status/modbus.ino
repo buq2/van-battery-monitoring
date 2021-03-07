@@ -14,6 +14,10 @@ void setup_modbus() {
   Serial2.setTimeout(100); 
   
   MODBUS_MASTER.begin(Slave_ID, Serial2);
+
+  // By default the chage controller assumes 200Ah battery
+  // Program correct (170Ah) battery size:
+  // MODBUS_MASTER.writeSingleRegister(0xe002, 170);
 }
 
 enum ReadTypes {
@@ -167,8 +171,15 @@ ChargerStatus GetChargerStatus() {
   TEST_TIMEOUT(GENERATOR_VOLTAGE.GetValue(out.alternator.voltage_v));
 
   //TEST_TIMEOUT(GENERATOR_POWER.GetValue(out.battery.power_w));
-  //TEST_TIMEOUT(GENERATOR_CURRENT.GetValue(out.battery.current_a));
+  TEST_TIMEOUT(TOTAL_CHARGE_CURRENT.GetValue(out.battery.current_a));
   TEST_TIMEOUT(BATTERY_VOLTAGE.GetValue(out.battery.voltage_v));
+
+  float tmp = 0.0f;
+  TEST_TIMEOUT(TOTAL_DAILY_CHARGE.GetValue(tmp)); out.total_daily_charge_ah = tmp;
+  TEST_TIMEOUT(STATUS_BITS1.GetValue(tmp)); out.status_bits1 = tmp;
+  TEST_TIMEOUT(STATUS_BITS2.GetValue(tmp)); out.status_bits2 = tmp;
+  TEST_TIMEOUT(STATUS_BITS3.GetValue(tmp)); out.status_bits3 = tmp;
+  TEST_TIMEOUT(BATTERY_PERCENTAGE.GetValue(tmp)); out.battery_percentage = tmp;
    
   return out;
 }

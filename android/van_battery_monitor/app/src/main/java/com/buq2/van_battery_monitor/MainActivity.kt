@@ -266,7 +266,7 @@ class MainActivity : AppCompatActivity() {
                 Log.i(TAG, "Connected")
 
                 // More data please
-                gatt?.requestMtu(256);
+                gatt?.requestMtu(300);
 
                 // Try to discover services
                 gatt?.discoverServices();
