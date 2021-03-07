@@ -114,9 +114,9 @@
         }
     }
 
-    function getPowerGauge() {
+    function getPowerGauge(row) {
         var out = getGauge();
-        out.domain.row = 0;
+        out.domain.row = row;
         out.title.text = "Power";
         out.number.suffix = "W";
         out.gauge.axis.range = [null, 100];
@@ -125,15 +125,48 @@
         return colorizeGauge(out, getGaugeColors());
     }
 
-    function getCurrentGauge() {
+    function getVoltageGauge(row) {
         var out = getGauge();
-        out.domain.row = 1;
+        out.domain.row = row;
+        out.title.text = "Voltage";
+        out.number.suffix = "V";
+        out.gauge.axis.range = [12, 15];
+        out.value = previous_data[component_to_display]["voltage_w"];
+
+        return colorizeGauge(out, getGaugeColors());
+    }
+
+    function getCurrentGauge(row) {
+        var out = getGauge();
+        out.domain.row = row;
         out.title.text = "Current";
         out.number.suffix = "A";
         out.gauge.axis.range = [null, 10];
         out.value = previous_data[component_to_display]["current_a"];
 
         return colorizeGauge(out, getGaugeColors());
+    }
+
+    function getBatteryPercentgeGauge(row) {
+        var out = getGauge();
+        out.domain.row = row;
+        out.title.text = "Charge";
+        out.number.suffix = "%";
+        out.gauge.axis.range = [null, 100];
+        out.value = previous_data["battery_percentage"];
+
+        return colorizeGauge(out, ["red", "green"]);
+    }
+
+    function getBatteryDailyChargeAh(row) {
+        var out = getGauge();
+        out.domain.row = row;
+        out.title.text = "Daily charge";
+        out.number.suffix = "Ah";
+        out.gauge.axis.range = [null, 20];
+        out.value = previous_data["total_daily_charge_ah"];
+
+        return colorizeGauge(out, ["red", "green"]);
     }
 
     function updateDisplay() {
@@ -144,13 +177,19 @@
         }
         document.getElementById("title").innerHTML = component_to_title[component_to_display];
 
-        var data_to_display = [
-            getPowerGauge(), getCurrentGauge()
-        ];
+        if (component_to_display != "battery") {
+            var data_to_display = [
+                getPowerGauge(0), getCurrentGauge(1)
+            ];
+        } else {
+            var data_to_display = [
+                getVoltageGauge(0), getCurrentGauge(1), getBatteryPercentgeGauge(2), getBatteryDailyChargeAh(3)
+            ];
+        }
 
         var layout = {
             margin: { t: 0, b: 0 },
-            grid: { rows: 2, columns: 1},
+            grid: { rows: data_to_display.length, columns: 1},
             plot_bgcolor:"#00000000",
             paper_bgcolor:"#00000000"
            };
