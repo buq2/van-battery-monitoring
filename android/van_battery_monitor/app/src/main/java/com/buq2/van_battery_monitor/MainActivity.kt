@@ -22,6 +22,8 @@ import android.view.MenuItem
 import android.webkit.WebView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.location.LocationManagerCompat
 
 
@@ -30,6 +32,8 @@ class MainActivity : AppCompatActivity() {
     private var mBluetoothAdapter: BluetoothAdapter? = null
     private var mBluetoothLeScanner: BluetoothLeScanner? = null
     private val PERMISSION_REQUEST_COARSE_LOCATION = 337642
+    private val PERMISSION_REQUEST_FINE_LOCATION = 987642
+    private val PERMISSION_REQUEST_BACKGROUND_LOCATION = 349875
     private val BLE_DEVICE_NAME: String = "VAN Charge Monitor"
     private val BLE_DEVICE_CHAR: String = "e5d3a406-a784-4bb1-947b-630a9732098a"
     var mBluetoothDevice: BluetoothDevice? = null
@@ -108,11 +112,22 @@ class MainActivity : AppCompatActivity() {
             requestPermissions(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION), PERMISSION_REQUEST_COARSE_LOCATION);
         }
 
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), PERMISSION_REQUEST_FINE_LOCATION);
+        }
+
         // Use this check to determine whether BLE is supported on the device.  Then you can
         // selectively disable BLE-related features.
         if (!packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
             Toast.makeText(this, "BLE not supported", Toast.LENGTH_SHORT).show()
             finish()
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // Android 10+ requires additional permission for ACCESS_BACKGROUND_LOCATION
+            if (ContextCompat.checkSelfPermission(baseContext,Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION), PERMISSION_REQUEST_BACKGROUND_LOCATION)
+            }
         }
 
         // Initializes a Bluetooth adapter.  For API level 18 and above, get a reference to
