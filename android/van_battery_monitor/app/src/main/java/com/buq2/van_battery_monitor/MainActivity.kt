@@ -156,8 +156,17 @@ class MainActivity : AppCompatActivity() {
 
     fun initWebview() {
         myWebView = findViewById(R.id.webview)
+        // WebView.setWebContentsDebuggingEnabled(true); // If debugging is needed from Desktop
         myWebView!!.settings.javaScriptEnabled = true
         myWebView!!.settings.domStorageEnabled = true
+
+        // If following are set, webview uses phones native resolution.
+        // This is way too small for example Pixel 4A.
+        // On the other hand plotlys responsive layout causes problems
+        // with Pixel4A if active.
+        // myWebView!!.settings.useWideViewPort = true;
+        // myWebView!!.settings.loadWithOverviewMode = true;
+
         myWebView!!.loadUrl("file:///android_asset/index.html")
     }
 

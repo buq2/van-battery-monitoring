@@ -30,9 +30,11 @@
 <body>
 <div class="container">
     <h1 class="text-center" id="title"></h1>
-    <div class="container" id="divGauges">
+
+    <div class="d-flex justify-content-center" id="divGauges">
         <div class="alert alert-info">Waiting for data from Bluetooth</div>
     </div>
+
     <div class="fixed-bottom">
         <div class="row text-center">
             <div class="col-4">
@@ -152,7 +154,7 @@
             plot_bgcolor:"#00000000",
             paper_bgcolor:"#00000000"
            };
-        var config = {responsive: true}
+        var config = {responsive: false, staticPlot: true}
         document.getElementById("divGauges").innerHTML = "";
         Plotly.newPlot('divGauges', data_to_display, layout, config);
     }
