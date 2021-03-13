@@ -24,8 +24,11 @@ flask_settings = {
 
 
 def get_current_status():
-    with shelve.open('/tmp/battery_status.shv') as db:
+    db = shelve.open('/tmp/battery_status.shv')
+    if "status" in db:
         return json.dumps(db['status'])
+    else:
+        return json.dumps({"status":"empty_db"})
 
 
 @auth.verify_password
@@ -57,8 +60,8 @@ def update_battery_status():
 
     if content is not None:
         content['timestamp'] = time.time()
-        with shelve.open('/tmp/battery_status.shv') as db:
-            db['status'] = content
+        db = shelve.open('/tmp/battery_status.shv')
+        db['status'] = content
 
     print(content)
     return "Updated"
@@ -79,7 +82,8 @@ if __name__ == '__main__':
 
 def start(**settings):
     global flask_settings
-    flask_settings.update(settings["flask"])
+    if "flask" in settings:
+        flask_settings.update(settings["flask"])
     log.debug(
         "Starting battery monitor service with settings: {:}".format(settings))
     start_server()
