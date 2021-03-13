@@ -15,4 +15,5 @@ struct ChargerStatus {
   uint16_t status_bits2{0};
   uint16_t status_bits3{0};
   uint8_t battery_percentage{0};
+  uint8_t external_temperature_c{0};
 };

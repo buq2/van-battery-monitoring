@@ -149,6 +149,7 @@ String GetHttpPayload(const ChargerStatus &status) {
   doc["status_bits2"] = status.status_bits2;
   doc["status_bits3"] = status.status_bits3;
   doc["battery_percentage"] = status.battery_percentage;
+  doc["external_temperature_c"] = status.external_temperature_c;
   
   String output;
   serializeJson(doc, output);

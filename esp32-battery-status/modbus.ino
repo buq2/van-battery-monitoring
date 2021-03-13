@@ -180,6 +180,7 @@ ChargerStatus GetChargerStatus() {
   TEST_TIMEOUT(STATUS_BITS2.GetValue(tmp)); out.status_bits2 = tmp;
   TEST_TIMEOUT(STATUS_BITS3.GetValue(tmp)); out.status_bits3 = tmp;
   TEST_TIMEOUT(BATTERY_PERCENTAGE.GetValue(tmp)); out.battery_percentage = tmp;
+  TEST_TIMEOUT(EXTERNAL_TEMPERATURE.GetValue(tmp)); out.external_temperature_c = tmp;
    
   return out;
 }
