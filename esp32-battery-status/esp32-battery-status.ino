@@ -140,6 +140,15 @@ void ConvertComponentStatus(const ComponentStatus &status, T out) {
 
 String GetHttpPayload(const ChargerStatus &status) {
   StaticJsonDocument<1024> doc;
+
+  doc["modbus_reads"] = status.modbus_successful_reads;
+  if (status.modbus_successful_reads == 0) {
+    // No successful modbus reads, all data invalid.
+    String output;
+    serializeJson(doc, output);
+    return output;
+  }
+  
   ConvertComponentStatus(status.battery, doc["battery"]);
   ConvertComponentStatus(status.solar, doc["solar"]);
   ConvertComponentStatus(status.alternator, doc["alternator"]);

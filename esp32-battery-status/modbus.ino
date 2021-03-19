@@ -160,7 +160,7 @@ ChargerStatus GetChargerStatus() {
   ChargerStatus out;
 
   // Return if we get timeout
-  #define TEST_TIMEOUT(x) {auto response = (x); if (response == ModbusMaster::ku8MBResponseTimedOut) {return out;}}
+  #define TEST_TIMEOUT(x) {auto response = (x); if (response == ModbusMaster::ku8MBResponseTimedOut) {return out;} else {++out.modbus_successful_reads;}}
 
   TEST_TIMEOUT(SOLAR_POWER.GetValue(out.solar.power_w));
   TEST_TIMEOUT(SOLAR_CURRENT.GetValue(out.solar.current_a));
